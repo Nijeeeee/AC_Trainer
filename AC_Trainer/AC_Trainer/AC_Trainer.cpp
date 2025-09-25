@@ -1,20 +1,36 @@
-// AC_Trainer.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
-
+#include <windows.h>
+#include <tlhelp32.h>
 #include <iostream>
+#include <string>
 
-int main()
-{
-    std::cout << "Hello World!\n";
+// Function to get process ID by name
+DWORD GetProcessIdByName(const std::wstring& processName) {
+    DWORD processId = 0;
+    PROCESSENTRY32W entry;
+    entry.dwSize = sizeof(PROCESSENTRY32W);
+
+    HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (Process32FirstW(snapshot, &entry)) {
+        do {
+            if (processName == entry.szExeFile) {
+                processId = entry.th32ProcessID;
+                break;
+            }
+        } while (Process32NextW(snapshot, &entry));
+    }
+
+    CloseHandle(snapshot); // Always close the handle
+    return processId;      // Always return a value
 }
-
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
-
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
+int main() {
+    DWORD pid = GetProcessIdByName(L"ac_client.exe");
+    if (!pid) {
+        std::cout << "AC Not Running !!" << std::endl;
+        return 1;
+    }
+    HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, false, pid);
+    if (!hProcess) {
+        std::cout << "Failed to open process" << std::endl;
+        return 1;
+    }
+}
